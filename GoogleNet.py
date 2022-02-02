@@ -119,7 +119,6 @@ class GoogLeNet(nn.Module):
 
         x = self.inception4a(x)
 
-        # Auxiliary Softmax classifier 1
         if self.aux_logits and self.training:
             aux1 = self.aux1(x)
 
@@ -127,7 +126,6 @@ class GoogLeNet(nn.Module):
         x = self.inception4c(x)
         x = self.inception4d(x)
 
-        # Auxiliary Softmax classifier 2
         if self.aux_logits and self.training:
             aux2 = self.aux2(x)
 
