@@ -133,7 +133,7 @@ def mean_average_precision(pred_boxes,
     return torch.mean(average_precisions)
 
 
-def plot_image(image, boxes):
+def plot_image(image, boxes, box_fomat="midpoint"):
     """Plots predicted bounding boxes on the image"""
     im = np.array(image)
     height, width, _ = im.shape
@@ -143,24 +143,27 @@ def plot_image(image, boxes):
     # Display the image
     ax.imshow(im)
 
-    # box[0] is x midpoint, box[2] is width
-    # box[1] is y midpoint, box[3] is height
+    if box_fomat == "midpoint":
 
-    # Create a Rectangle potch
-    for box in boxes:
-        box = box[2:]
-        assert len(box) == 4, "Got more values than in x, y, w, h, in a box!"
-        upper_left_x = box[0] - box[2] / 2
-        upper_left_y = box[1] - box[3] / 2
-        rect = patches.Rectangle(
-            (upper_left_x * width, upper_left_y * height),
-            box[2] * width,
-            box[3] * height,
-            linewidth=1,
-            edgecolor="r",
-            facecolor="none",
-        )
-        # Add the patch to the Axes
-        ax.add_patch(rect)
+        # box[0] is x midpoint, box[2] is width
+        # box[1] is y midpoint, box[3] is height
+
+        # Create a Rectangle potch
+        for box in boxes:
+            box = box[2:]
+            assert len(
+                box) == 4, "Got more values than in x, y, w, h, in a box!"
+            upper_left_x = box[0] - box[2] / 2
+            upper_left_y = box[1] - box[3] / 2
+            rect = patches.Rectangle(
+                (upper_left_x * width, upper_left_y * height),
+                box[2] * width,
+                box[3] * height,
+                linewidth=1,
+                edgecolor="r",
+                facecolor="none",
+            )
+            # Add the patch to the Axes
+            ax.add_patch(rect)
 
     plt.show()
