@@ -61,8 +61,72 @@ def non_maximum_suppression(bboxes, iou_threshold, prob_threshold, box_format):
         bboxes = [
             box for box in bboxes if box[0] != chosen_box[0]
             or intersection_over_union(torch.tensor(chosen_box[2:]),
-                                       torch.tensor(box[2:])) < iou_threshold
+                                       torch.tensor(box[2:]), box_format=box_format) < iou_threshold
         ]
 
         bboxes_after_nms.append(chosen_box)
     return bboxes_after_nms
+
+
+def mean_average_precision(pred_boxes,
+                           true_boxes,
+                           iou_threshold=0.5,
+                           box_format="midpoint",
+                           num_classes=20):
+    average_precisions = []
+
+    for c in range(num_classes):
+        detections = [
+            detection for detection in pred_boxes if detection[1] == c
+        ]
+        gt = [
+            true_box for true_box in true_boxes if true_box[1] == c
+        ]
+        amount_bboxes = Counter([i[0] for i in gt])
+
+        for key, val in amount_bboxes.items():
+            amount_bboxes[key] = torch.zeros(val)
+
+        detections.sort(key=lambda x: x[2], reverse=True, inplace=True)
+
+        TP = torch.zeros_like(detections)
+        FP = torch.zeros_like(detections)
+
+        total_true_bboxes = len(gt)
+
+        if not total_true_bboxes:
+            continue
+
+        for detection_idx, detection in enumerate(detections):
+            gt_img = [bbox for bbox in gt if bbox[0] == detection[0]]
+
+            best_iou = 0.0
+
+            for idx, groud_true in enumerate(gt_img):
+                iou = intersection_over_union(
+                    torch.tensor(detection[3:]),
+                    torch.tensor(groud_true[3:]),
+                    box_format=box_format,
+                )
+                if iou > best_iou:
+                    best_iou = iou
+                    best_gt_idx = idx
+
+            if best_iou > iou_threshold:
+                if not amount_bboxes[detection[0]][best_gt_idx]:
+                    TP[detection_idx] = 1
+                    amount_bboxes[detection[0]][best_gt_idx] = 1
+                else:
+                    FP[detection_idx] = 1
+            else:
+                FP[detection_idx] = 1
+
+        TP_cumsum = torch.cumsum(TP, dim=0)
+        FP_cumsum = torch.cumsum(FP, dim=0)
+        recalls = TP_cumsum / (total_true_bboxes + EPS)
+        precisions = torch.divide(TP_cumsum, (TP_cumsum + FP_cumsum + EPS))
+        precisions = torch.cat((torch.tensor([1]), precisions))
+        recalls = torch.cat((torch.tensor([0]), recalls))
+        average_precisions.append(torch.trapz(precisions, recalls))
+
+    return torch.mean(average_precisions)
