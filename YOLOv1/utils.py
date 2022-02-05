@@ -1,5 +1,6 @@
 import torch
 import numpy as np
+import pandas as pd
 import matplotlib.pyplot as plt
 from collections import Counter
 import matplotlib.patches as patches
@@ -133,7 +134,7 @@ def mean_average_precision(pred_boxes,
     return torch.mean(average_precisions)
 
 
-def plot_image(image, boxes, box_fomat="midpoint"):
+def plot_image(image, boxes, box_format="midpoint"):
     """Plots predicted bounding boxes on the image"""
     im = np.array(image)
     height, width, _ = im.shape
@@ -143,16 +144,12 @@ def plot_image(image, boxes, box_fomat="midpoint"):
     # Display the image
     ax.imshow(im)
 
-    if box_fomat == "midpoint":
-
-        # box[0] is x midpoint, box[2] is width
-        # box[1] is y midpoint, box[3] is height
-
-        # Create a Rectangle potch
+    # box: [x_c, y_c, w, h]
+    if box_format == "midpoint":
+        # Create a Rectangle patch
         for box in boxes:
-            box = box[2:]
-            assert len(
-                box) == 4, "Got more values than in x, y, w, h, in a box!"
+            box = box[1:]
+            assert len(box) == 4
             upper_left_x = box[0] - box[2] / 2
             upper_left_y = box[1] - box[3] / 2
             rect = patches.Rectangle(
@@ -165,5 +162,31 @@ def plot_image(image, boxes, box_fomat="midpoint"):
             )
             # Add the patch to the Axes
             ax.add_patch(rect)
-
+    elif box_format == "corners":
+        # Create a Rectangle patch
+        for box in boxes:
+            box = box[2:]
+            assert len(box) == 4
+            upper_left_x = box[0]
+            upper_left_y = box[1]
+            rect = patches.Rectangle(
+                (upper_left_x * width, upper_left_y * height),
+                (box[2] - box[0]) / 2 * width,
+                (box[3] - box[1]) / 2 * height,
+                linewidth=1,
+                edgecolor="r",
+                facecolor="none",
+            )
+            # Add the patch to the Axes
+            ax.add_patch(rect)
     plt.show()
+
+
+if __name__ == '__main__':
+    df_8 = pd.read_csv("../../archive/8examples.csv")
+    img_name, label_name = df_8.loc[0, :].img, df_8.loc[0, :].label
+    img = plt.imread(f"../../archive/images/{img_name}")
+    labels = ""
+    with open(f"../../archive/labels/{label_name}", "r") as file:
+        labels = [line.strip().split(" ") for line in file]
+    plot_image(img, list(np.float_(labels)))
