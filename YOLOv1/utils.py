@@ -182,6 +182,17 @@ def plot_image(image, boxes, box_format="midpoint"):
     plt.show()
 
 
+def save_checkpoint(state, filename="my_checkpoint.pth.tar"):
+    print("=> Saving checkpoint")
+    torch.save(state, filename)
+
+
+def load_checkpoint(checkpoint, model, optimizer):
+    print("=> Loading checkpoint")
+    model.load_state_dict(checkpoint["state_dict"])
+    optimizer.load_state_dict(checkpoint["optimizer"])
+
+
 if __name__ == '__main__':
     df_8 = pd.read_csv("../../archive/8examples.csv")
     img_name, label_name = df_8.loc[0, :].img, df_8.loc[0, :].label
