@@ -128,6 +128,7 @@ class YoloLoss(nn.Module):
 
         return loss
 
+
 def BSmoothL1(y_pred, y_true):
     """_summary_
 
@@ -136,7 +137,8 @@ def BSmoothL1(y_pred, y_true):
         y_true (_type_): _description_
     """
     pass
-    
+
+
 def BFocalLoss(y_pred, y_true):
     """_summary_
 
