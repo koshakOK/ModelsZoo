@@ -1,8 +1,9 @@
 """
 Implementation of Yolo Loss Function from the original yolo paper
 """
-
+from scipy import special
 import torch
+import numpy as np
 import torch.nn as nn
 from utils import intersection_over_union
 
@@ -92,7 +93,7 @@ class YoloLoss(nn.Module):
         #   FOR NO OBJECT LOSS    #
         # ======================= #
 
-        #max_no_obj = torch.max(predictions[..., 20:21], predictions[..., 25:26])
+        # max_no_obj = torch.max(predictions[..., 20:21], predictions[..., 25:26])
         # no_object_loss = self.mse(
         #    torch.flatten((1 - exists_box) * max_no_obj, start_dim=1),
         #    torch.flatten((1 - exists_box) * target[..., 20:21], start_dim=1),
@@ -129,21 +130,34 @@ class YoloLoss(nn.Module):
         return loss
 
 
-def BSmoothL1(y_pred, y_true):
-    """_summary_
+def BSmoothL1(y_pred, y_true, sigma, beta):
+    """A Bayesian Loss for regresion
 
     Args:
-        y_pred (_type_): _description_
-        y_true (_type_): _description_
+        y_pred (ndarray): predictions
+        y_true (ndarray): groud-truth
+        sigma: noise in the data
+        beta: hyperparameter
     """
-    pass
+    epsilon = nn.MSELoss(y_pred, y_true)
+    tau = special.erfc(1 / (beta ** 2 * np.sqrt(2 * sigma ** 2)))
+
+    if epsilon < 1 / beta ** 2:
+        return (epsilon ** 2) / (2 * sigma ** 2) + np.log(sigma)
+    else:
+        return (-1) * beta ** 2 * epsilon * np.log(tau) + np.log(tau) + 1 / (2 * sigma ** 2 * beta ** 4) + np.log(sigma)
 
 
-def BFocalLoss(y_pred, y_true):
-    """_summary_
+def BFocalLoss(y_pred, y_true, sigma, gamma):
+    """Bayesian Focal Loss for classification
 
     Args:
-        y_pred (_type_): _description_
-        y_true (_type_): _description_
+        y_pred (ndarray): probs of 1
+        y_true (ndarray): one-hot vector
+        sigma: noise in the data
+        gamma: hyperparameter
     """
-    pass
+    pt = np.array([y_pred[i] if y else 1 - y_pred[i]
+                  for i, y in enumerate(y_true)])
+
+    return (-1) * (1 / sigma * (1 - pt) ** (sigma ** -2)) ** gamma * (1 / sigma ** 2 * np.log(pt) - np.log(sigma))
